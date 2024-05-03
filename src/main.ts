@@ -21,6 +21,7 @@ async function main() {
   let fragment_src: string = await (await fetch('/shaders/shader.frag')).text();
   
   scene = new AndyScene(canvas, vertex_src, fragment_src);
+  scene.load_texture("/dirt.png", scene.gl.TEXTURE0);
   addUiCallbacks();
 
   let animation_loop = (timestamp_milis: number) => {
@@ -91,6 +92,6 @@ function render(_milis: number) {
   );
 
   scene.gl.uniform4fv(scene.u_Color, new Float32Array([0.0, 0.5, 0.5, 1.0]));
-  let matrix = make_scale_matrix(1, 1, 11);
+  let matrix = make_scale_matrix(3, 3, 3);
   scene.draw_cube(matrix);
 }
