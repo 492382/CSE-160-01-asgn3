@@ -1,28 +1,62 @@
 import {Matrix, matrix_multiply, make_translation_matrix} from "./math_stuff.js";
 
-
 export class AndyScene {
   gl: WebGL2RenderingContext;
   program: WebGLProgram;
-  u_GlobalMatrix: WebGLUniformLocation;
+  u_CameraMatrix: WebGLUniformLocation;
   u_ModelMatrix: WebGLUniformLocation;
   u_Color: WebGLUniformLocation;
+  u_TextureEnum: WebGLUniformLocation;
+  u_ProjMatrix: WebGLUniformLocation;
   a_Position: GLint;
   a_TexCoord: GLint;
   cube_buffer: WebGLBuffer;
   cube_tex_buffer: WebGLBuffer;
   circle_buffer: WebGLBuffer;
 
+  u_Sampler0: WebGLUniformLocation;
+  u_Sampler1: WebGLUniformLocation;
+  u_Sampler2: WebGLUniformLocation;
 
   constructor(canvas: HTMLCanvasElement, vertex_shader_src: string, frag_shader_src: string) {
     [this.gl, this.program, this.cube_buffer, this.cube_tex_buffer, this.circle_buffer] = setupWebGL(canvas, vertex_shader_src, frag_shader_src);
 
 
-    this.u_GlobalMatrix = this.gl.getUniformLocation(this.program, "global_matrix");
+    this.u_CameraMatrix = this.gl.getUniformLocation(this.program, "camera_matrix");
     this.u_ModelMatrix = this.gl.getUniformLocation(this.program, "model_matrix");
     this.u_Color = this.gl.getUniformLocation(this.program, "color");
+    this.u_TextureEnum = this.gl.getUniformLocation(this.program, "texture_enum");
+    this.u_ProjMatrix = this.gl.getUniformLocation(this.program, "proj_matrix");
+    
     this.a_Position = this.gl.getAttribLocation(this.program, "attribute_model_position");
     this.a_TexCoord = this.gl.getAttribLocation(this.program, "attribute_tex_coord");
+    
+
+    this.u_Sampler0 = this.gl.getUniformLocation(this.program, "uSampler0");
+    this.u_Sampler1 = this.gl.getUniformLocation(this.program, "uSampler1");
+    this.u_Sampler2 = this.gl.getUniformLocation(this.program, "uSampler2");
+
+    this.gl.uniform1i(this.u_Sampler0, 0);
+    this.gl.uniform1i(this.u_Sampler1, 1);
+    this.gl.uniform1i(this.u_Sampler2, 2);
+    
+    let r = 1;
+    let l = -1;
+    let t = 1;
+    let b = -1;
+
+    let f = -1;
+    let n = 1;
+    
+    this.set_matrix(this.u_ProjMatrix, 
+      [[(2*n)/(r-l), 0          , (r+l)/(r-l), 0],
+	[0,           (2*n)/(t-b), (t+b)/(t-b), 0],
+	[0,           0          , (n+f)/(n-f), (2*n*f)/(n-f)],
+	[0          , 0          , -1          , 0]]
+      
+    );
+    
+    
   }
 
   set_matrix(unif: WebGLUniformLocation, matrix: Matrix) {
@@ -36,7 +70,9 @@ export class AndyScene {
   }
 
   
-  draw_cube(model_matrix: Matrix) {
+  draw_cube(model_matrix: Matrix, texture_enum: GLint) {
+    this.gl.uniform1ui(this.u_TextureEnum, texture_enum);
+    
     this.set_matrix(
       this.u_ModelMatrix,
       matrix_multiply(model_matrix, make_translation_matrix(-0.5, -0.5, -0.5)),
@@ -57,9 +93,10 @@ export class AndyScene {
   }
 
 
-  load_texture(url: string, texture_enum: number) {
+  async load_texture(url: string, texture_enum: number) {
     let gl = this.gl;
     const texture = gl.createTexture();
+
     gl.activeTexture(texture_enum);
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -83,27 +120,31 @@ export class AndyScene {
       pixel,
     );
 
-    const image = new Image();
-    image.onload = () => {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(
-	gl.TEXTURE_2D,
-	level,
-	internalFormat,
-	srcFormat,
-	srcType,
-	image,
-      );
+    let image: HTMLImageElement = await new Promise(resolve => {
+      const image = new Image();
+      image.addEventListener("load", () => {
+        resolve(image);
+      });
+      image.src = url;
+    });
 
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	
-    };
-    image.src = url;
+    gl.activeTexture(texture_enum);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      srcFormat,
+      srcType,
+      image,
+    );
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    
   }
 }
- 
 
 function setupWebGL(canvas: HTMLCanvasElement, vertex_shader_src: string, frag_shader_src: string): [WebGL2RenderingContext, WebGLProgram, WebGLBuffer, WebGLBuffer, WebGLBuffer] {
   let gl = canvas.getContext("webgl2");
@@ -178,9 +219,6 @@ function setupWebGL(canvas: HTMLCanvasElement, vertex_shader_src: string, frag_s
   return [gl, program, cube_buffer, cube_tex_buffer, circle_buffer];
 }
 
-
-
-
 const CUBE_VERTS = new Float32Array([
   0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
 
@@ -206,7 +244,6 @@ const CUBE_TEX_VERTS = new Float32Array([
 
   0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
 
-  //0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
   0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
 ]);
 

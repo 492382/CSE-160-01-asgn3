@@ -120,3 +120,28 @@ export function rotor_to_matrix([real, bivector]: Rotor): Matrix {
   ];
 }
 
+
+export function matrix_mul_vec(mat: Matrix, vec: Vector): Vector {
+
+  let with_1 = vec.concat([1]);
+  
+  return Array(4)
+    .fill(undefined)
+    .map((_, row) => {
+
+      return with_1.reduce((acc, val, i) =>{
+	return acc + (val*mat[row][i]);
+      }, 0);
+    }) as Vector;
+}
+
+
+export function invert_rotor([real, bivector]: Rotor): Rotor{
+
+  let len = real * real + bivector.map((x) => x*x).reduce((acc, n) => acc + n, 0);
+  
+  let new_real = real / len;
+  let new_bivec: Bivector = bivector.map((x) => -x/len) as Bivector;
+
+  return [new_real, new_bivec];
+}
