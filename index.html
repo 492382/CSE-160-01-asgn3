@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Andy Bruce's asgn2 for CSE160 Spring 2024</title>
+    <link rel="icon" href="data:," />
+    <script src="main.js" type="module"></script>
+  </head>
+  <body>
+    <h2>Chinese White Dolphin</h2>
+    <p id="fps_counter"></p>
+    <div style="float: none">
+      <canvas
+        id="andy_canvas"
+        width="600"
+        height="600"
+        style="float: left"
+      ></canvas>
+      <div>
+        <label for="angle_slider">Radians:</label>
+        <div id="radians_counter">0</div>
+        <input
+          id="angle_slider"
+          type="range"
+          min="0"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <hr />
+        <br />
+        <label for="yz_input">Bivector yz plane</label>
+        <input
+          id="yz_input"
+          type="number"
+          min="-100"
+          max="100"
+          step="0.1"
+          value="0"
+        />
+        <br />
+        <label for="zx_input">Bivector zx plane</label>
+        <input
+          id="zx_input"
+          type="number"
+          min="-100"
+          max="100"
+          step="0.1"
+          value="0"
+        />
+        <br />
+        <label for="xy_input">Bivector xy plane</label>
+        <input
+          id="xy_input"
+          type="number"
+          min="-100"
+          max="100"
+          step="0.1"
+          value="1"
+        />
+        <hr />
+        <label for="animation_checkbox">Do animation</label>
+        <input id="animation_checkbox" type="checkbox" checked />
+        <br />
+
+        <label for="body1_input">Body 1 angle</label>
+        <input
+          id="body1_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <br />
+
+        <label for="top_fin1_angle1_input">Top fin 1 angle 1</label>
+        <input
+          id="top_fin1_angle1_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <br />
+        <label for="top_fin1_angle2_input">Top fin 1 angle 2</label>
+        <input
+          id="top_fin1_angle2_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="top_fin2_angle1_input">Top fin 2 angle 1</label>
+        <input
+          id="top_fin2_angle1_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <br />
+        <label for="top_fin2_angle2_input">Top fin 2 angle 2</label>
+        <input
+          id="top_fin2_angle2_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="tail1_input">Tail 1 angle</label>
+        <input
+          id="tail1_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="tail2_input">Tail 2 angle</label>
+        <input
+          id="tail2_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="tail3_input">Tail 3 angle</label>
+        <input
+          id="tail3_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="head_input">Head angle</label>
+        <input
+          id="head_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+
+        <br />
+        <label for="fins_angle1_input">Fins angle 1</label>
+        <input
+          id="fins_angle1_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <br />
+        <label for="fins_angle2_input">Fins angle 2</label>
+        <input
+          id="fins_angle2_input"
+          type="range"
+          min="-6.3"
+          max="6.3"
+          step="any"
+          value="0"
+        />
+        <br />
+      </div>
+    </div>
+    <div style="clear: both">
+      <p>
+        The world will be rotated in a plane specified by these bivector
+        components and an angle in radians. The bivector doesn't have to be
+        normalized, the code will do that for you. Rotations can be done by
+        dragging with the mouse. The velocity of rotation is determined by the
+        speed of dragging. The plane rotation (bivector) is calculated by
+        multiplying the velocity vector the mouse is traveling in by the Z
+        direction vector. The only non cube primitive are the eyes which are
+        circles.
+      </p>
+      <image src="assets/dolphin.jpeg" , height="200"></image>
+    </div>
+  </body>
+</html>
