@@ -23,9 +23,9 @@ async function main() {
   let fragment_src: string = await (await fetch('./shaders/shader.frag')).text();
   
   scene = new AndyScene(canvas, vertex_src, fragment_src);
-  await scene.load_texture("/dirt.png", scene.gl.TEXTURE0);
-  await scene.load_texture("/grass.jpg", scene.gl.TEXTURE1);
-  await scene.load_texture("/sky.jpg", scene.gl.TEXTURE2);
+  await scene.load_texture("./dirt.png", scene.gl.TEXTURE0);
+  await scene.load_texture("./grass.jpg", scene.gl.TEXTURE1);
+  await scene.load_texture("./sky.jpg", scene.gl.TEXTURE2);
 
   addUiCallbacks();
 
