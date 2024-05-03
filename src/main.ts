@@ -19,13 +19,13 @@ let camera_pos = [0, 5, 10]
 async function main() {
   let canvas: HTMLCanvasElement = document.getElementById("andy_canvas") as HTMLCanvasElement;
 
-  let vertex_src: string = await (await fetch('./shaders/shader.vert')).text();
-  let fragment_src: string = await (await fetch('./shaders/shader.frag')).text();
+  let vertex_src: string = await (await fetch('shaders/shader.vert')).text();
+  let fragment_src: string = await (await fetch('shaders/shader.frag')).text();
   
   scene = new AndyScene(canvas, vertex_src, fragment_src);
-  await scene.load_texture("./dirt.png", scene.gl.TEXTURE0);
-  await scene.load_texture("./grass.jpg", scene.gl.TEXTURE1);
-  await scene.load_texture("./sky.jpg", scene.gl.TEXTURE2);
+  await scene.load_texture("dirt.png", scene.gl.TEXTURE0);
+  await scene.load_texture("grass.jpg", scene.gl.TEXTURE1);
+  await scene.load_texture("sky.jpg", scene.gl.TEXTURE2);
 
   addUiCallbacks();
 
