@@ -2,7 +2,7 @@ import {Matrix, matrix_multiply, make_translation_matrix} from "./math_stuff.js"
 
 
 export class AndyScene {
-  gl: WebGLRenderingContext;
+  gl: WebGL2RenderingContext;
   program: WebGLProgram;
   u_GlobalMatrix: WebGLUniformLocation;
   u_ModelMatrix: WebGLUniformLocation;
@@ -23,11 +23,11 @@ export class AndyScene {
   }
 
   set_matrix(unif: WebGLUniformLocation, matrix: Matrix) {
-  let flattened_matrix = Array(16)
-    .fill(undefined)
-    .map((_, index) => {
-      return matrix[index % 4][Math.trunc(index / 4)];
-    });
+    let flattened_matrix = Array(16)
+      .fill(undefined)
+      .map((_, index) => {
+	return matrix[index % 4][Math.trunc(index / 4)];
+      });
 
     this.gl.uniformMatrix4fv(unif, false, flattened_matrix);
   }
@@ -48,11 +48,62 @@ export class AndyScene {
     this.gl.vertexAttribPointer(this.a_Position, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, NUM_CIRCLE_SEGMENTS + 2);
   }
+
+
+  load_texture(url: string) {
+    let gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Because images have to be downloaded over the internet
+    // they might take a moment until they are ready.
+    // Until then put a single pixel in the texture so we can
+    // use it immediately. When the image has finished downloading
+    // we'll update the texture with the contents of the image.
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      width,
+      height,
+      border,
+      srcFormat,
+      srcType,
+      pixel,
+    );
+
+    const image = new Image();
+    image.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(
+	gl.TEXTURE_2D,
+	level,
+	internalFormat,
+	srcFormat,
+	srcType,
+	image,
+      );
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	
+    };
+    image.src = url;
+  }
 }
  
 
-function setupWebGL(canvas: HTMLCanvasElement, vertex_shader_src: string, frag_shader_src: string): [WebGLRenderingContext, WebGLProgram, WebGLBuffer, WebGLBuffer] {
-  let gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
+function setupWebGL(canvas: HTMLCanvasElement, vertex_shader_src: string, frag_shader_src: string): [WebGL2RenderingContext, WebGLProgram, WebGLBuffer, WebGLBuffer] {
+  let gl = canvas.getContext("webgl2");
 
   //https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/By_example/Hello_GLSL
   const vertexShader = gl.createShader(gl.VERTEX_SHADER);
