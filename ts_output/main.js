@@ -11,8 +11,8 @@ let mouse_dy = 0.0;
 let camera_pos = [0, 5, 10];
 async function main() {
     let canvas = document.getElementById("andy_canvas");
-    let vertex_src = await (await fetch('/shaders/shader.vert')).text();
-    let fragment_src = await (await fetch('/shaders/shader.frag')).text();
+    let vertex_src = await (await fetch('./shaders/shader.vert')).text();
+    let fragment_src = await (await fetch('./shaders/shader.frag')).text();
     scene = new AndyScene(canvas, vertex_src, fragment_src);
     await scene.load_texture("/dirt.png", scene.gl.TEXTURE0);
     await scene.load_texture("/grass.jpg", scene.gl.TEXTURE1);
