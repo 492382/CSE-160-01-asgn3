@@ -1,6 +1,10 @@
 import { invert_rotor, matrix_mul_vec, make_rotation_rotor, rotor_multiply, normalize_vec_or_bivec, rotor_to_matrix, matrix_multiply, make_scale_matrix, make_translation_matrix, matrix_list_multiply } from "./math_stuff.js";
+import { FractalBrownianMotion } from "./perlin_noise.js";
 import { AndyScene } from "./webgl_stuff.js";
 window.onload = main;
+const WORLD_X_SIZE = 32;
+const WORLD_Y_SIZE = 16;
+const WORLD_Z_SIZE = 32;
 let scene;
 let global_rotor = make_rotation_rotor(0.5, [1, 0, 0]);
 let d_theta = 0.077;
@@ -8,16 +12,27 @@ let mouse_old_x = null;
 let mouse_old_y = null;
 let mouse_dx = 0.0;
 let mouse_dy = 0.0;
-let camera_pos = [0, 5, 10];
+let camera_pos = [WORLD_X_SIZE / 2, WORLD_Y_SIZE, WORLD_Z_SIZE / 2];
+let water_level = 2;
+let world_blocks = new Array(WORLD_Z_SIZE).fill(null).map(() => new Array(WORLD_Y_SIZE).fill(null).map(() => new Array(WORLD_X_SIZE).fill("air")));
 async function main() {
     let canvas = document.getElementById("andy_canvas");
     let vertex_src = await (await fetch('shaders/shader.vert')).text();
     let fragment_src = await (await fetch('shaders/shader.frag')).text();
     scene = new AndyScene(canvas, vertex_src, fragment_src);
-    await scene.load_texture("dirt.png", scene.gl.TEXTURE0);
-    await scene.load_texture("grass.jpg", scene.gl.TEXTURE1);
-    await scene.load_texture("sky.jpg", scene.gl.TEXTURE2);
+    await scene.load_texture("textures/dirt.png", scene.gl.TEXTURE0);
+    await scene.load_texture("textures/grass.jpg", scene.gl.TEXTURE1);
+    await scene.load_texture("textures/sky.jpg", scene.gl.TEXTURE2);
     addUiCallbacks();
+    for (let z = 0; z < WORLD_Z_SIZE; z++) {
+        for (let x = 0; x < WORLD_X_SIZE; x++) {
+            let height = Math.floor(FractalBrownianMotion((x / WORLD_X_SIZE) * 256.0, (z / WORLD_Z_SIZE) * 256.0, 3) * WORLD_Y_SIZE);
+            height = Math.min(height, WORLD_Y_SIZE); //sometimes it goes too high idk why
+            for (let i = 0; i < height; i++) {
+                world_blocks[z][i][x] = "dirt";
+            }
+        }
+    }
     let animation_loop = (timestamp_milis) => {
         render(timestamp_milis);
         requestAnimationFrame(animation_loop);
@@ -76,9 +91,21 @@ function addUiCallbacks() {
             camera_pos[1] -= camera_right[1] * 0.5;
             camera_pos[2] -= camera_right[2] * 0.5;
         }
+        if (event.code == "KeyE") {
+            global_rotor = rotor_multiply(make_rotation_rotor(0.1, normalize_vec_or_bivec([0, 1, 0])), global_rotor);
+        }
+        if (event.code == "KeyQ") {
+            global_rotor = rotor_multiply(make_rotation_rotor(-0.1, normalize_vec_or_bivec([0, 1, 0])), global_rotor);
+        }
+        if (event.code == "Space") {
+            water_level = Math.min(WORLD_Y_SIZE - 1, water_level + 1);
+        }
+        if (event.code == "KeyH") {
+            water_level = Math.max(-1, water_level - 1); //-1 for no water
+        }
     });
 }
-function render(milis) {
+function render(_milis) {
     scene.gl.clear(scene.gl.COLOR_BUFFER_BIT | scene.gl.DEPTH_BUFFER_BIT);
     if (mouse_dx * mouse_dx + mouse_dy * mouse_dy > 0) {
         //negate the dy because on the canvas positive Y is down instead of up
@@ -86,24 +113,28 @@ function render(milis) {
     }
     let rot_mat = rotor_to_matrix(global_rotor);
     scene.set_matrix(scene.u_CameraMatrix, matrix_list_multiply([rot_mat, make_scale_matrix(0.2, 0.2, 0.2), make_translation_matrix(-camera_pos[0], -camera_pos[1], -camera_pos[2])]));
-    scene.gl.uniform4fv(scene.u_Color, new Float32Array([0.0, 0.5, 0.5, 1.0]));
-    let matrix1_1 = matrix_list_multiply([
-        make_translation_matrix(5, 0, 0),
-        rotor_to_matrix(make_rotation_rotor((milis / 1000), [0, 0, 1])),
-        make_scale_matrix(3, 3, 3)
-    ]);
-    scene.draw_cube(matrix1_1, 1);
-    let matrix1_2 = matrix_multiply(rotor_to_matrix(make_rotation_rotor((milis / 1000), [Math.sqrt(2), 0, Math.sqrt(2)])), make_scale_matrix(3, 3, 3));
-    scene.draw_cube(matrix1_2, 4);
-    let matrix1_3 = matrix_list_multiply([
-        make_translation_matrix(-5, 0, 0),
-        rotor_to_matrix(make_rotation_rotor((milis / 1000), [1, 0, 0])),
-        make_scale_matrix(3, 3, 3)
-    ]);
-    scene.draw_cube(matrix1_3, 0);
-    let matrix2 = matrix_multiply(make_translation_matrix(0, -3, 0), make_scale_matrix(50, 0.5, 50));
-    scene.draw_cube(matrix2, 2);
-    let matrix3 = make_scale_matrix(50, 50, 50);
-    scene.draw_cube(matrix3, 3);
+    scene.gl.uniform4fv(scene.u_Color, new Float32Array([0.0, 0.5, 0.5, 0.5]));
+    for (let z = 0; z < WORLD_Z_SIZE; z++) {
+        for (let y = 0; y < WORLD_Y_SIZE; y++) {
+            for (let x = 0; x < WORLD_X_SIZE; x++) {
+                switch (world_blocks[z][y][x]) {
+                    case "air":
+                        if (y == water_level) {
+                            scene.draw_plane(make_translation_matrix(x, y - 0.4, z), 0);
+                        }
+                        break;
+                    case "dirt":
+                        scene.draw_cube(make_translation_matrix(x, y, z), 1);
+                        break;
+                    default:
+                        console.error("unknown block");
+                }
+            }
+        }
+    }
+    let ground_matrix = matrix_multiply(make_translation_matrix(0, -0.5, 0), make_scale_matrix(WORLD_X_SIZE, 0.05, WORLD_Z_SIZE));
+    scene.draw_cube(ground_matrix, 2);
+    let sky_matrix = matrix_multiply(make_translation_matrix(0, -0.5, 0), make_scale_matrix(WORLD_X_SIZE, 50, WORLD_Z_SIZE));
+    scene.draw_cube(sky_matrix, 3);
 }
 //# sourceMappingURL=main.js.map

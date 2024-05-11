@@ -1,4 +1,3 @@
-import { matrix_multiply, make_translation_matrix } from "./math_stuff.js";
 export class AndyScene {
     gl;
     program;
@@ -11,12 +10,13 @@ export class AndyScene {
     a_TexCoord;
     cube_buffer;
     cube_tex_buffer;
-    circle_buffer;
+    plane_buffer;
+    plane_tex_buffer;
     u_Sampler0;
     u_Sampler1;
     u_Sampler2;
     constructor(canvas, vertex_shader_src, frag_shader_src) {
-        [this.gl, this.program, this.cube_buffer, this.cube_tex_buffer, this.circle_buffer] = setupWebGL(canvas, vertex_shader_src, frag_shader_src);
+        [this.gl, this.program, this.cube_buffer, this.cube_tex_buffer, this.plane_buffer, this.plane_tex_buffer] = setupWebGL(canvas, vertex_shader_src, frag_shader_src);
         this.u_CameraMatrix = this.gl.getUniformLocation(this.program, "camera_matrix");
         this.u_ModelMatrix = this.gl.getUniformLocation(this.program, "model_matrix");
         this.u_Color = this.gl.getUniformLocation(this.program, "color");
@@ -30,8 +30,8 @@ export class AndyScene {
         this.gl.uniform1i(this.u_Sampler0, 0);
         this.gl.uniform1i(this.u_Sampler1, 1);
         this.gl.uniform1i(this.u_Sampler2, 2);
-        let r = 1;
-        let l = -1;
+        let r = 2;
+        let l = -2;
         let t = 1;
         let b = -1;
         let f = -1;
@@ -51,18 +51,21 @@ export class AndyScene {
     }
     draw_cube(model_matrix, texture_enum) {
         this.gl.uniform1ui(this.u_TextureEnum, texture_enum);
-        this.set_matrix(this.u_ModelMatrix, matrix_multiply(model_matrix, make_translation_matrix(-0.5, -0.5, -0.5)));
+        this.set_matrix(this.u_ModelMatrix, model_matrix);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.cube_buffer);
         this.gl.vertexAttribPointer(this.a_Position, 3, this.gl.FLOAT, false, 0, 0);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.cube_tex_buffer);
         this.gl.vertexAttribPointer(this.a_TexCoord, 2, this.gl.FLOAT, false, 0, 0);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, NUM_CUBE_VERTS);
     }
-    draw_circle(model_matrix) {
+    draw_plane(model_matrix, texture_enum) {
+        this.gl.uniform1ui(this.u_TextureEnum, texture_enum);
         this.set_matrix(this.u_ModelMatrix, model_matrix);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.circle_buffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.plane_buffer);
         this.gl.vertexAttribPointer(this.a_Position, 3, this.gl.FLOAT, false, 0, 0);
-        this.gl.drawArrays(this.gl.TRIANGLE_FAN, 0, NUM_CIRCLE_SEGMENTS + 2);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.plane_tex_buffer);
+        this.gl.vertexAttribPointer(this.a_TexCoord, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, NUM_PLANE_VERTS);
     }
     async load_texture(url, texture_enum) {
         let gl = this.gl;
@@ -91,6 +94,7 @@ export class AndyScene {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 }
 function setupWebGL(canvas, vertex_shader_src, frag_shader_src) {
@@ -121,24 +125,22 @@ function setupWebGL(canvas, vertex_shader_src, frag_shader_src) {
     gl.enableVertexAttribArray(a_TexCoord);
     let cube_buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cube_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, CUBE_VERTS, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, CUBE_VERTS, gl.STATIC_DRAW);
     let cube_tex_buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cube_tex_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, CUBE_TEX_VERTS, gl.DYNAMIC_DRAW);
-    let circle_verts = Array(NUM_CIRCLE_SEGMENTS + 1)
-        .fill(undefined)
-        .flatMap((_, index) => {
-        let radians = (index / NUM_CIRCLE_SEGMENTS) * TAU;
-        return [Math.cos(radians), Math.sin(radians), 0];
-    });
-    circle_verts.unshift(0, 0, 0);
-    let circle_buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, circle_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circle_verts), gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, CUBE_TEX_VERTS, gl.STATIC_DRAW);
+    let plane_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, plane_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, PLANE_VERTS, gl.STATIC_DRAW);
+    let plane_tex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, plane_tex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, PLANE_TEX_VERTS, gl.STATIC_DRAW);
     gl.useProgram(program);
-    gl.clearColor(0.2, 0.3, 0.5, 1.0);
+    gl.clearColor(0.2, 0.3, 0.5, 1);
     gl.enable(gl.DEPTH_TEST);
-    return [gl, program, cube_buffer, cube_tex_buffer, circle_buffer];
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    return [gl, program, cube_buffer, cube_tex_buffer, plane_buffer, plane_tex_buffer];
 }
 const CUBE_VERTS = new Float32Array([
     0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
@@ -156,7 +158,13 @@ const CUBE_TEX_VERTS = new Float32Array([
     0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
     0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
 ]);
+const PLANE_VERTS = new Float32Array([
+    0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+]);
+const PLANE_TEX_VERTS = new Float32Array([
+    0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+]);
 const NUM_CUBE_VERTS = CUBE_VERTS.length / 3;
-const NUM_CIRCLE_SEGMENTS = 10;
+const NUM_PLANE_VERTS = PLANE_VERTS.length / 3;
 const TAU = Math.PI * 2;
 //# sourceMappingURL=webgl_stuff.js.map
